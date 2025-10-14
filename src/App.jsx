@@ -3,43 +3,56 @@ import { Delaunay } from 'd3-delaunay'
 
 const ASPECT = 900 / 300 // width / height ratio used for sampling and drawing logic
 
-function samplePointsFromText(text, density = 1.0) {
+function samplePointsFromText(text, density = 0.4) {
+  // create an offscreen canvas and draw the text so we can sample pixels
+  // Use internal sampling size (fixed) so sampling resolution is stable
+  const SAMPLE_W = 900
+  const SAMPLE_H = 300
   const off = document.createElement('canvas')
-  off.width = CANVAS_W
-  off.height = CANVAS_H
+  off.width = SAMPLE_W
+  off.height = SAMPLE_H
   const ctx = off.getContext('2d')
   ctx.fillStyle = 'black'
   ctx.fillRect(0, 0, off.width, off.height)
   ctx.fillStyle = 'white'
-  ctx.font = 'bold 200px serif'
-  ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  ctx.fillText(text, off.width / 2, off.height / 2 + 30)
+
+  // size text to fit
+  let fontSize = 220
+  ctx.font = `${fontSize}px serif`
+  while (ctx.measureText(text).width > off.width - 40 && fontSize > 10) {
+    fontSize -= 4
+    ctx.font = `${fontSize}px serif`
+  }
+  ctx.fillText(text, 20, off.height / 2)
 
   const img = ctx.getImageData(0, 0, off.width, off.height).data
   const points = []
-  for (let y = 0; y < off.height; y += Math.max(1, Math.floor(4 / density))) {
-    for (let x = 0; x < off.width; x += Math.max(1, Math.floor(4 / density))) {
+  const step = Math.max(1, Math.floor(4 / Math.max(0.001, density)))
+  for (let y = 0; y < off.height; y += step) {
+    for (let x = 0; x < off.width; x += step) {
       const idx = (y * off.width + x) * 4
-      const alpha = img[idx + 3]
       const r = img[idx]
-      // white text pixels will have high r/g/b
-      if (r > 200 && alpha > 10) {
-        // jitter a little
+      const alpha = img[idx + 3]
+      // white text pixels will have high r/g/b and non-zero alpha
+      if (r > 180 && alpha > 10 && Math.random() < density) {
+        // jitter a little for more organic cells
         points.push([x + (Math.random() - 0.5) * 2, y + (Math.random() - 0.5) * 2])
       }
     }
   }
-  // add some border points so voronoi covers full canvas
+
+  // add some random points so voronoi covers the whole canvas
   for (let i = 0; i < 30; i++) {
     points.push([Math.random() * off.width, Math.random() * off.height])
   }
+
   return points
 }
 
 export default function App() {
-  const [text, setText] = useState('Hello')
-  const [density, setDensity] = useState(1.2)
+  const [text, setText] = useState('Hello World')
+  const [density, setDensity] = useState(0.4)
   const canvasRef = useRef(null)
   const containerRef = useRef(null)
 
@@ -48,7 +61,7 @@ export default function App() {
     const container = containerRef.current
     if (!canvas || !container) return
 
-    // compute target width (75% of viewport via CSS) by reading container width
+    // compute target width (read from container which is 75vw in CSS)
     const cssWidth = container.clientWidth
     const dpr = window.devicePixelRatio || 1
     const width = Math.max(200, Math.round(cssWidth))
@@ -69,13 +82,12 @@ export default function App() {
 
     if (!text) return
 
-    // sample at a reasonable resolution (we reuse the existing sampling function but scale points to the canvas size)
+    // sample at fixed resolution then scale points to the canvas size
     const sampleCanvasW = 900
     const sampleCanvasH = 300
     const rawPoints = samplePointsFromText(text, density)
     if (rawPoints.length === 0) return
 
-    // scale points from sample resolution to actual canvas size
     const sx = width / sampleCanvasW
     const sy = height / sampleCanvasH
     const points = rawPoints.map(([x, y]) => [x * sx, y * sy])
@@ -88,7 +100,6 @@ export default function App() {
       const cell = voronoi.cellPolygon(i)
       if (!cell) continue
       const [px, py] = points[i]
-      // color by distance from center
       const dx = px - width / 2
       const dy = py - height / 2
       const d = Math.sqrt(dx * dx + dy * dy)
@@ -128,11 +139,18 @@ export default function App() {
         </label>
         <label>
           Density:
-          <input type="range" min="0.2" max="3" step="0.1" value={density} onChange={(e) => setDensity(parseFloat(e.target.value))} />
+          <input
+            type="range"
+            min="0.2"
+            max="3"
+            step="0.1"
+            value={density}
+            onChange={(e) => setDensity(parseFloat(e.target.value))}
+          />
         </label>
       </div>
-      <div className="canvas-wrap">
-        <canvas ref={canvasRef} width={CANVAS_W} height={CANVAS_H} />
+      <div className="canvas-wrap" ref={containerRef}>
+        <canvas ref={canvasRef} />
         <div className="text-preview">{text}</div>
       </div>
       <p className="note">Tip: try short words or initials for best results</p>

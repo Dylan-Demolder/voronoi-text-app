@@ -3,7 +3,7 @@ import { Delaunay } from 'd3-delaunay'
 
 const ASPECT = 900 / 300 // width / height ratio used for sampling and drawing logic
 
-function samplePointsFromText(text, density = 0.4) {
+function samplePointsFromText(text, density = 1.2) {
   // create an offscreen canvas and draw the text so we can sample pixels
   // Use internal sampling size (fixed) so sampling resolution is stable
   const SAMPLE_W = 900
@@ -51,7 +51,7 @@ function samplePointsFromText(text, density = 0.4) {
 }
 
 export default function App() {
-  const [text, setText] = useState('Hello World')
+  const [text, setText] = useState('I made a thing :)')
   const [density, setDensity] = useState(0.4)
   const canvasRef = useRef(null)
   const containerRef = useRef(null)

@@ -1,8 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react'
 import { Delaunay } from 'd3-delaunay'
 
-const CANVAS_W = 900
-const CANVAS_H = 300
+const ASPECT = 900 / 300 // width / height ratio used for sampling and drawing logic
 
 function samplePointsFromText(text, density = 1.0) {
   const off = document.createElement('canvas')
@@ -42,21 +41,47 @@ export default function App() {
   const [text, setText] = useState('Hello')
   const [density, setDensity] = useState(1.2)
   const canvasRef = useRef(null)
+  const containerRef = useRef(null)
 
   useEffect(() => {
     const canvas = canvasRef.current
+    const container = containerRef.current
+    if (!canvas || !container) return
+
+    // compute target width (75% of viewport via CSS) by reading container width
+    const cssWidth = container.clientWidth
+    const dpr = window.devicePixelRatio || 1
+    const width = Math.max(200, Math.round(cssWidth))
+    const height = Math.round(width / ASPECT)
+
+    // set canvas internal pixel size for crisp rendering
+    canvas.width = Math.round(width * dpr)
+    canvas.height = Math.round(height * dpr)
+    canvas.style.width = width + 'px'
+    canvas.style.height = height + 'px'
+
     const ctx = canvas.getContext('2d')
-    ctx.clearRect(0, 0, CANVAS_W, CANVAS_H)
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+
+    ctx.clearRect(0, 0, width, height)
     ctx.fillStyle = '#111'
-    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H)
+    ctx.fillRect(0, 0, width, height)
 
     if (!text) return
 
-    const points = samplePointsFromText(text, density)
-    if (points.length === 0) return
+    // sample at a reasonable resolution (we reuse the existing sampling function but scale points to the canvas size)
+    const sampleCanvasW = 900
+    const sampleCanvasH = 300
+    const rawPoints = samplePointsFromText(text, density)
+    if (rawPoints.length === 0) return
+
+    // scale points from sample resolution to actual canvas size
+    const sx = width / sampleCanvasW
+    const sy = height / sampleCanvasH
+    const points = rawPoints.map(([x, y]) => [x * sx, y * sy])
 
     const delaunay = Delaunay.from(points)
-    const voronoi = delaunay.voronoi([0, 0, CANVAS_W, CANVAS_H])
+    const voronoi = delaunay.voronoi([0, 0, width, height])
 
     // draw cells
     for (let i = 0; i < points.length; i++) {
@@ -64,10 +89,10 @@ export default function App() {
       if (!cell) continue
       const [px, py] = points[i]
       // color by distance from center
-      const dx = px - CANVAS_W / 2
-      const dy = py - CANVAS_H / 2
+      const dx = px - width / 2
+      const dy = py - height / 2
       const d = Math.sqrt(dx * dx + dy * dy)
-      const t = Math.min(1, d / (Math.sqrt(CANVAS_W * CANVAS_W + CANVAS_H * CANVAS_H) / 2))
+      const t = Math.min(1, d / (Math.sqrt(width * width + height * height) / 2))
       const hue = Math.floor(200 + t * 160) % 360
       ctx.beginPath()
       ctx.moveTo(cell[0][0], cell[0][1])
@@ -79,7 +104,7 @@ export default function App() {
       ctx.stroke()
     }
 
-    // optional: draw points
+    // draw points
     ctx.fillStyle = 'rgba(0,0,0,0.8)'
     for (const p of points) {
       ctx.beginPath()

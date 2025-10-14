@@ -93,7 +93,13 @@ export default function App() {
       <div className="controls">
         <label>
           Text:
-          <input value={text} onChange={(e) => setText(e.target.value)} />
+          <input
+            type="text"
+            className="text-input"
+            value={text}
+            placeholder="Type text to render"
+            onChange={(e) => setText(e.target.value)}
+          />
         </label>
         <label>
           Density:

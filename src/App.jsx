@@ -52,7 +52,7 @@ function samplePointsFromText(text, density = 1.2) {
 
 export default function App() {
   const [text, setText] = useState('I made a thing :)')
-  const [density, setDensity] = useState(0.4)
+  const [density, setDensity] = useState(1.2)
   const canvasRef = useRef(null)
   const containerRef = useRef(null)
 

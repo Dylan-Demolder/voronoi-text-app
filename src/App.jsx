@@ -110,7 +110,7 @@ export default function App() {
         <canvas ref={canvasRef} width={CANVAS_W} height={CANVAS_H} />
         <div className="text-preview">{text}</div>
       </div>
-      <p className="note">Tip: try short words or initials for best results.s</p>
+      <p className="note">Tip: try short words or initials for best results</p>
     </div>
   )
 }

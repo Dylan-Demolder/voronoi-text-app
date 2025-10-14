@@ -106,7 +106,10 @@ export default function App() {
           <input type="range" min="0.2" max="3" step="0.1" value={density} onChange={(e) => setDensity(parseFloat(e.target.value))} />
         </label>
       </div>
-      <canvas ref={canvasRef} width={CANVAS_W} height={CANVAS_H} />
+      <div className="canvas-wrap">
+        <canvas ref={canvasRef} width={CANVAS_W} height={CANVAS_H} />
+        <div className="text-preview">{text}</div>
+      </div>
       <p className="note">Tip: try short words or initials for best results. This app is ready to deploy on Vercel.</p>
     </div>
   )

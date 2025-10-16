@@ -1,5 +1,7 @@
 # Voronoi Text App
 
+https://voronoi-text-app.vercel.app/
+
 Minimal React app that renders text as a Voronoi pattern using canvas and d3-delaunay.
 
 Run locally:
